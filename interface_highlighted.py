@@ -13,19 +13,6 @@ MODEL = load_model(path=settings.SVM_BASELINE_PATH)
 COEFS = get_coefficients(MODEL, top_k=settings.COEF_MAX_TOP_K)
 
 
-def get_cutoffs(log_vals, n_steps=10):
-    the_range = log_vals.max() - log_vals.min()
-    return np.arange(log_vals.min() + (the_range / n_steps), log_vals.max(), the_range / (n_steps - 1))
-
-
-LABEL_MAP = {'pos': 'AI', 'neg': 'Human'}
-
-CUTOFFS = {'AI': get_cutoffs(np.array(list(COEFS['pos'].values()))),
-           'Human': get_cutoffs(np.array(list(COEFS['neg'].values())))}
-
-RGB_RED, RGB_GREEN = (1, 0, 0), (0, 1, 0)
-
-
 def AI_score(text):
     _, ai_score = MODEL.predict_proba([text])[0]
     return ai_score
@@ -38,7 +25,7 @@ def find_cutoff(score, cutoffs):
     return len(cutoffs)
 
 
-def get_suspect_tokens(text, include_color=True):
+def get_suspect_tokens(text):
     TOKEN_RE = re.compile(r'[a-zA-Z]+')
     output = []
     last = 0
@@ -49,17 +36,10 @@ def get_suspect_tokens(text, include_color=True):
             output.append((text[last:start], None))
         # find feature
         word = text[start:end]
-        target_label = cutoff = None
-        for label in COEFS.keys():
-            if word in COEFS[label]:
-                target_label = LABEL_MAP[label]
-        # find cutoff
-        if target_label is not None:
-            cutoff = find_cutoff(COEFS[label][word], CUTOFFS[target_label])
-            output.append((text[start:end], (cutoff)))
-        else:
-            output.append((text[start:end], None))
-        last = end            
+        score = COEFS.get(word, 0.0)
+        output.append((text[start:end], (score)))
+        last = end
+    # trailing text
     if last != len(text):
         output.append((text[last:], None))
     return output
@@ -67,14 +47,6 @@ def get_suspect_tokens(text, include_color=True):
 
 def on_click(text):
     return round(AI_score(text), 4), get_suspect_tokens(text)
-
-
-def generate_color_map():
-    pass
-
-
-def rgb2hex(r,g,b):
-    return "#{:02x}{:02x}{:02x}".format(r,g,b)
 
 
 with gr.Blocks(title="AI Detection Service") as DEMO:
@@ -93,16 +65,12 @@ with gr.Blocks(title="AI Detection Service") as DEMO:
             input_text = gr.Textbox(label="Input Text", placeholder="Enter your text here...")
         with gr.Column(variant="panel", scale=1, min_width=50):
             score_btn = gr.Button("Score")
-            output_score = gr.Textbox(label="Confidence")
+            output_score = gr.Text(label="Confidence", interactive=False)
         with gr.Column(scale=4):
             highlighted_text = gr.HighlightedText(
-                label="Analysis", 
-                show_inline_category=False, show_legend=True, combine_adjacent=True, 
-                color_map={"Human": mpl.colors.rgb2hex(RGB_RED + (0.1,), keep_alpha=True), 
-                           "AI": mpl.colors.rgb2hex(RGB_RED + (0.8,), keep_alpha=True)})
+                label="Analysis", show_legend=True, combine_adjacent=True)
 
         score_btn.click(fn=on_click, inputs=input_text, outputs=[output_score, highlighted_text])
-
 
 
 if __name__ == '__main__':
