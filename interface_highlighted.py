@@ -37,7 +37,8 @@ def get_suspect_tokens(text):
         # find feature
         word = text[start:end]
         score = COEFS.get(word, 0.0)
-        output.append((text[start:end], (score)))
+        score = None if score == 0.0 else score
+        output.append((text[start:end], score))
         last = end
     # trailing text
     if last != len(text):
@@ -49,7 +50,7 @@ def on_click(text):
     return round(AI_score(text), 4), get_suspect_tokens(text)
 
 
-with gr.Blocks(title="AI Detection Service") as DEMO:
+with gr.Blocks(title="AI Detection Service") as demo:
     gr.Markdown(
         """
         # AI Detection Service
@@ -67,11 +68,10 @@ with gr.Blocks(title="AI Detection Service") as DEMO:
             score_btn = gr.Button("Score")
             output_score = gr.Text(label="Confidence", interactive=False)
         with gr.Column(scale=4):
-            highlighted_text = gr.HighlightedText(
-                label="Analysis", show_legend=True, combine_adjacent=True)
+            highlighted_text = gr.HighlightedText(label="Analysis", show_legend=True, combine_adjacent=True, container=False)
 
         score_btn.click(fn=on_click, inputs=input_text, outputs=[output_score, highlighted_text])
 
 
 if __name__ == '__main__':
-    DEMO.launch()
+    demo.launch()

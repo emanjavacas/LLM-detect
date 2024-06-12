@@ -1,6 +1,6 @@
 
 from settings import settings
-from svm_baseline import load_model, get_coefficients
+from svm_baseline import load_model
 import gradio as gr
 
 
