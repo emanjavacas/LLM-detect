@@ -6,7 +6,7 @@ import collections
 import asyncio
 from typing import Dict, List
 
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, UploadFile, Cookie, Request
 from fastapi import WebSocket, WebSocketDisconnect
 from fastapi import Depends, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -115,6 +115,11 @@ async def read_index():
     with open("static/index.html") as f:
         html_content = f.read()
     return HTMLResponse(content=html_content)
+
+
+# @app.middleware("http")
+# async def add_session_id(request: Request, call_next):
+#     pass
 
 
 @app.websocket("/ws/{session_id}")
