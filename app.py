@@ -1,16 +1,25 @@
 
 import io
-import os
+import time
+import logging
 import collections
 import asyncio
 from typing import Dict, List
 
-from fastapi import FastAPI, File, Form, UploadFile, Depends, HTTPException
+from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import Depends, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from llm_detect.settings import settings
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    # filename='myapp.log',
+    level=logging.DEBUG)
+
 
 description = """
 ## Introduction
@@ -40,51 +49,65 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-def process_data(text):
-    import time
-    print("sleeping")
-    time.sleep(10)
+async def process_data(text):
+    logger.info("sleeping 5 seconds")
+    await asyncio.sleep(5)
     return text.upper()
+
+
+class WebSocketManager:
+    def __init__(self) -> None:
+        self.websockets: Dict[str, WebSocket] = {}
+
+    async def register(self, session_id: str, websocket: WebSocket):
+        self.websockets[session_id] = websocket
+    
+    async def deregister(self, session_id: str):
+        if session_id in self.websockets:
+            del self.websockets[session_id]
+
+    async def notify(self, session_id: str):
+        if session_id in self.websockets:
+            ws = self.websockets[session_id]
+            try:
+                logger.info(f"Session {session_id}: status done")
+                await ws.send_json({"status": "done"})
+            except WebSocketDisconnect:
+                await self.deregister(session_id)
 
 
 class FileUploadManager:
     def __init__(self) -> None:
         self.file_chunks: Dict[str, Dict[int, bytes]] = collections.defaultdict(dict)
-        self.locks: Dict[str, asyncio.Lock] = collections.defaultdict(asyncio.Lock)
         self.processed_files: Dict[str, bytes] = {}
         self.filenames: Dict[str, str] = {}
 
-    async def add_chunk(self, session_id: str, filename: str, chunk_number: int, chunk_data: bytes):
-        async with self.locks[session_id]:
-            self.file_chunks[session_id][chunk_number] = chunk_data
-            if filename in self.filenames:
-                raise ValueError
+    def add_chunk(self, session_id: str, filename: str, chunk_number: int, chunk_data: bytes):
+        self.file_chunks[session_id][chunk_number] = chunk_data
+        if session_id not in self.filenames:
             self.filenames[session_id] = filename
 
-    async def process_file_if_ready(self, session_id: str, total_chunks: int):
-        async with self.locks[session_id]:
-            if len(self.file_chunks[session_id]) == total_chunks:
-                file_data = b''.join(self.file_chunks[session_id][i] for i in range(total_chunks))
-                processed_data = process_data(file_data)
-                self.processed_files[session_id] = processed_data
-                del self.file_chunks[session_id]
-                return True
-            else:
-                return False
+    async def process_file_if_ready(self, session_id: str, total_chunks: int, notifier: WebSocketManager):
+        if len(self.file_chunks[session_id]) == total_chunks:
+            file_data = b''.join(self.file_chunks[session_id][i] for i in range(total_chunks))
+            del self.file_chunks[session_id]
+            # process and notify
+            logger.debug(f"Session {session_id}: await to process")
+            processed_data = await process_data(file_data)
+            logger.debug(f"Session {session_id}: return from await")
+            self.processed_files[session_id] = processed_data
+            await notifier.notify(session_id)
             
-    async def check_processed_file_status(self, session_id: str):
-        return self.processed_files.get(session_id, None)
-            
-    async def get_processed_file(self, session_id: str):
-        async with self.locks[session_id]:
-            processed_file = self.processed_files[session_id]
-            filename = self.filenames[session_id]
-            del self.locks[session_id]
-            del self.filenames[session_id]
-            return {'filename': filename, 'processed_file': processed_file}
+    def get_processed_file(self, session_id: str):
+        processed_file = self.processed_files[session_id]
+        filename = self.filenames[session_id]
+        del self.filenames[session_id]
+        del self.processed_files[session_id]
+        return {'filename': filename, 'processed_file': processed_file}
 
             
 file_upload_manager = FileUploadManager()
+websocket_manager = WebSocketManager()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -94,36 +117,43 @@ async def read_index():
     return HTMLResponse(content=html_content)
 
 
+@app.websocket("/ws/{session_id}")
+async def websocket(websocket: WebSocket,
+                    session_id: str,
+                    notifier: WebSocketManager = Depends(lambda: websocket_manager)):
+    await websocket.accept()
+    await notifier.register(session_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await notifier.deregister(session_id)
+
+
 @app.post("/upload")
 async def upload(file: UploadFile = File(...),
                  chunk: int = Form(...), 
                  total_chunks: int = Form(...),
                  session_id: str = Form(...),
-                 manager: FileUploadManager = Depends(lambda: file_upload_manager)):
+                 background_tasks: BackgroundTasks = BackgroundTasks(),
+                 notifier: WebSocketManager = Depends(lambda: websocket_manager),
+                 file_manager: FileUploadManager = Depends(lambda: file_upload_manager)):
     
-    print(f"Received chunk {chunk + 1}/{total_chunks} of file: {file.filename}")
-
-    await manager.add_chunk(session_id, file.filename, chunk, await file.read())
-
-    if await manager.process_file_if_ready(session_id, total_chunks):
-        return {"message": f"File {file.filename} uploaded and processed."}
-    else:
-        return {"message": f"Chunk {chunk + 1}/{total_chunks} received."}
-
-
-@app.get("/processing-status")
-async def get_processing_status(session_id: str, 
-                                manager: FileUploadManager = Depends(lambda: file_upload_manager)):
-    if manager.check_processed_file_status(session_id):
-        return {"status": "done"}
-    else:
-        return {"status": "processing"}
+    msg = f"Received chunk {chunk + 1}/{total_chunks} of file: {file.filename}"
+    start = time.time()
+    logger.info(msg)
+    chunk_data = await file.read()
+    logger.info(time.time() - start)
+    file_manager.add_chunk(session_id, file.filename, chunk, chunk_data)
+    if chunk == total_chunks - 1:
+        background_tasks.add_task(file_manager.process_file_if_ready, session_id, total_chunks, notifier)
+    return {"message": msg}
 
 
 @app.get("/download-file")
 async def download_file(session_id: str,
-                        manager: FileUploadManager = Depends(lambda: file_upload_manager)):
-    payload = await manager.get_processed_file(session_id)
+                        file_manager: FileUploadManager = Depends(lambda: file_upload_manager)):
+    payload = file_manager.get_processed_file(session_id)
     if payload:
         return StreamingResponse(io.BytesIO(payload['processed_file']), 
                                  media_type='application/octet-stream', 
@@ -137,7 +167,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
-
+        
     import uvicorn
     uvicorn.run("app:app",
                 host='0.0.0.0',
