@@ -1,40 +1,38 @@
 const { div, li, ul, span, button, h5, form, input, p } = van.tags;
 
-class FileList() {
-    constructor(files) {
-        this.files = files
-    }
-
-    add (filename, sessionId, status) {
-
-    }
-}
-
 function Card() {
 
-    const filelist = van.state([]);
+    class FileList {
+        constructor (files) { this.files = files }
+        add (filename, sessionId, status) {
+            this.files.push({ filename: filename, sessionId: sessionId, status: van.state(status)});
+            return new FileList(this.files);
+        }
+        updateStatus(sessionId, status) {
+            const file = this.files.find(f => f.sessionId === sessionId);
+            if (file) {
+                file.status = van.state(status);
+            }
+            return new FileList(this.files);
+        }
+
+    }
+
+    const filelist = van.state(new FileList([]));
 
     function addFileToList(filename, sessionId, status) {
-        console.log('addFileToList', filename, sessionId, status)
-        filelist.val.push({ filename, sessionId, status});
+        console.log('addFileToList', filename, sessionId, status);
+        filelist.val = filelist.val.add(filename, sessionId, status);
     }
 
     function updateFileStatus(sessionId, status) {
-        const file = filelist.val.find(f => f.sessionId === sessionId);
-        console.log('updateFileStatus', sessionId, status, filelist.val)
-        if (file) {
-            console.log('update status', status)
-            file.status = status 
-        }
+        filelist.val = filelist.val.updateStatus(sessionId, status);
+        console.log('updateFileStatus', sessionId, status);
     }
 
     const UPLOADING = 'Uploading...';
     const PROCESSING = 'Processing...';
     const READY = 'Ready to download!';
-    const statusClasses = {
-        UPLOADING: 'bg-warning text-dark',
-        PROCESSING: 'bg-info',
-        READY: 'bg-success'};
 
     function uploadFileInChunks(file, sessionId) {
         const chunkSize = 1 * 1024 * 1024; // 1MB
@@ -106,15 +104,19 @@ function Card() {
 
     function createListItem(file) {
         console.log('createListItem', file);
-        const statusClass = statusClasses[file.status] || 'bg-seconday';
+        const statusClasses = {
+            UPLOADING: 'bg-warning text-dark',
+            PROCESSING: 'bg-info',
+            READY: 'bg-success'};
+        const statusClass = statusClasses[file.status.val] || 'bg-seconday';
         const listItem = li({ class: 'list-group-item' },
             span(file.filename), 
-            file.status == READY ? 
+            file.status.val == READY ? 
                 button({ id: `btn-${file.sessionId}`, 
                     class: "btn btn-sm btn-primary float-end",
                     onclick: () => downloadFile(file.sessionId) }, "Download") :
                 button({ id: `btn-${file.sessionId}`, class: "btn btn-sm btn-primary float-end disabled" }, "Download"),
-            div(span({ id: `status-${file.sessionId}`, class: statusClass }, file.status)))
+            div(span({ id: `status-${file.sessionId}`, class: statusClass }, file.status.val)))
         return listItem
     }
 
@@ -127,7 +129,8 @@ function Card() {
                 input({ type: "file", class: "form-control", id: "fileInput", multiple: true }),
                 button({ class: "btn btn-outline-secondary", type: "submit" }, "Upload"))),
         div({class:"row"},
-            ul({ class: "list-group list-group-flush", id: "fileList" }, [])))
+            ul({ class: "list-group list-group-flush", id: "fileList" },
+            () => filelist.val.files.map(createListItem))))
 }
       
         // const existingSessionIds = document.cookie.split(";").map(cookie => cookie.split('=')[0].trim());
