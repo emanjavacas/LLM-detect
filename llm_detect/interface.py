@@ -1,9 +1,11 @@
 
 import gradio as gr
 
+from .models import MODEL
 
-def on_click(text, model):
-    scores = model.score(text, return_token_scores=False)
+
+def on_click(text):
+    scores = MODEL.model.score(text, return_token_scores=False)
     return round(scores, 4)
 
 
@@ -25,10 +27,7 @@ with gr.Blocks(title="AI Detection Service") as demo:
         with gr.Column(variant="panel", scale=1, min_width=100):
             score_btn = gr.Button("Score")
             output_score = gr.Textbox(label="Confidence")
-        def on_click_(text):
-            print("interface", dir(demo.app.state))
-            return on_click(text, demo.app.state.model)
-        score_btn.click(fn=on_click_, inputs=input_text, outputs=output_score)
+        score_btn.click(fn=on_click, inputs=input_text, outputs=output_score)
 
 
 if __name__ == '__main__':

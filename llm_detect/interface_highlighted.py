@@ -3,31 +3,13 @@ import numpy as np
 import gradio as gr
 
 from .settings import settings
+from .models import MODEL
 
 
-def nonlinear(x, a, b):
-    return x / (a*(b-x)+b)
-
-
-def on_click(text, model):
-    score, sent_scores = model.score(
-        text, return_token_scores=True, split_sentences=True)
-
-    output = []
-    for sent in sent_scores:
-        tokens, scores = zip(*sent)
-        if settings.USE_CUE_WORDS:
-            is_cue = np.array(list(filter(None, scores)))
-            # just proportion of words in each class
-            prop = is_cue.sum() / len(is_cue)
-            # apply nonlinear transform
-            prop = -nonlinear(-prop, 0.8, 1) if prop < 0 else nonlinear(prop, 0.8, 1)
-            output.append((''.join(tokens), prop))
-        else:
-            for token, token_score in zip(tokens, scores):
-                output.append((token, token_score))
-    
-    return round(score, 4), output
+def on_click(text):
+    score = MODEL.model.score(text)
+    sent_scores = MODEL.model.score_sentences(text)    
+    return round(score, 4), sent_scores
 
 
 with gr.Blocks(title="AI Detection Service") as demo:
@@ -53,11 +35,7 @@ with gr.Blocks(title="AI Detection Service") as demo:
                 label="Analysis",
                 show_legend=True, combine_adjacent=True, container=False)
             
-        def on_click_(text):
-            print("highlight", dir(demo.app.state))
-            return on_click(text, demo.app.state.model)
-
-        score_btn.click(fn=on_click_, inputs=input_text, outputs=[output_score, highlighted_text])
+        score_btn.click(fn=on_click, inputs=input_text, outputs=[output_score, highlighted_text])
 
 
 if __name__ == '__main__':
