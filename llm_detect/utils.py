@@ -2,7 +2,7 @@
 import pysbd
 from lingua import Language, LanguageDetectorBuilder
 
-from settings import settings
+from .settings import settings
 
 
 LINGUA_CODES = {Language.ENGLISH: 'en',

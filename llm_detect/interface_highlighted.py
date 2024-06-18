@@ -1,27 +1,16 @@
 
 import numpy as np
-
 import gradio as gr
 
-from settings import settings
-from svm_baseline import SVMDetector
-
-
-if settings.MODEL_TYPE == 'SVMDetector':
-    MODEL = SVMDetector(
-        path=settings.SVM_BASELINE_PATH, top_k=settings.SVM_BASELINE__MAX_TOP_K, 
-        use_cue_words=settings.USE_CUE_WORDS, normalize=not settings.USE_CUE_WORDS,
-        cue_percentile_cutoff=settings.CUE_PERCENTILE_CUTOFF)
-else:
-    raise ValueError("Unknown MODEL_TYPE: {}".format(settings.MODEL_TYPE))
+from .settings import settings
 
 
 def nonlinear(x, a, b):
     return x / (a*(b-x)+b)
 
 
-def on_click(text):
-    score, sent_scores = MODEL.score(
+def on_click(text, model):
+    score, sent_scores = model.score(
         text, return_token_scores=True, split_sentences=True)
 
     output = []
@@ -63,8 +52,12 @@ with gr.Blocks(title="AI Detection Service") as demo:
             highlighted_text = gr.HighlightedText(
                 label="Analysis",
                 show_legend=True, combine_adjacent=True, container=False)
+            
+        def on_click_(text):
+            print("highlight", dir(demo.app.state))
+            return on_click(text, demo.app.state.model)
 
-        score_btn.click(fn=on_click, inputs=input_text, outputs=[output_score, highlighted_text])
+        score_btn.click(fn=on_click_, inputs=input_text, outputs=[output_score, highlighted_text])
 
 
 if __name__ == '__main__':

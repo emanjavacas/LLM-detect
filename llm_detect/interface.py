@@ -1,18 +1,9 @@
 
 import gradio as gr
 
-from settings import settings
-from svm_baseline import SVMDetector
 
-
-if settings.MODEL_TYPE == 'SVMDetector':
-    MODEL = SVMDetector(path=settings.SVM_BASELINE_PATH, top_k=settings.SVM_BASELINE__MAX_TOP_K)
-else:
-    raise ValueError("Unknown MODEL_TYPE: {}".format(settings.MODEL_TYPE))
-
-
-def on_click(text):
-    scores = MODEL.score(text, return_token_scores=False) 
+def on_click(text, model):
+    scores = model.score(text, return_token_scores=False)
     return round(scores, 4)
 
 
@@ -34,7 +25,10 @@ with gr.Blocks(title="AI Detection Service") as demo:
         with gr.Column(variant="panel", scale=1, min_width=100):
             score_btn = gr.Button("Score")
             output_score = gr.Textbox(label="Confidence")
-        score_btn.click(fn=on_click, inputs=input_text, outputs=output_score)
+        def on_click_(text):
+            print("interface", dir(demo.app.state))
+            return on_click(text, demo.app.state.model)
+        score_btn.click(fn=on_click_, inputs=input_text, outputs=output_score)
 
 
 if __name__ == '__main__':

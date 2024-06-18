@@ -3,6 +3,7 @@ import re
 import pandas as pd
 import numpy as np
 import skops.io
+import aiofiles
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import make_pipeline
@@ -10,8 +11,8 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.model_selection import train_test_split, GridSearchCV
 
-from settings import settings
-import utils
+from .settings import settings
+from .utils import segment_text
 
 
 def load_data(data_path='data/data.csv', test_size=0.20, random_state=42):
@@ -49,12 +50,13 @@ def train_model(X_train, X_test, y_train, y_test, output_path=settings.SVM_BASEL
     skops.io.dump(clf, output_path)
 
 
-def load_model(path='svm_baseline.skops'):
-    skops.io.get_untrusted_types(file=path)
-    return skops.io.load(
-        'svm_baseline.skops',
-        trusted=['sklearn.calibration._CalibratedClassifier',
-                 'sklearn.calibration._SigmoidCalibration'])
+async def load_model(path='svm_baseline.skops'):
+    async with aiofiles.open(path, 'rb') as f:
+        skops.io.get_untrusted_types(file=path)
+        return skops.io.loads(
+            await f.read(),
+            trusted=['sklearn.calibration._CalibratedClassifier',
+                    'sklearn.calibration._SigmoidCalibration'])
 
 
 def get_coefficients(clf, top_k=0, normalize=False):
@@ -82,7 +84,7 @@ def get_coefficients(clf, top_k=0, normalize=False):
 
 
 class SVMDetector:
-    def __init__(self, path, top_k=0, normalize=False, use_cue_words=False, cue_percentile_cutoff=0):
+    def __init__(self, model, top_k=0, normalize=False, use_cue_words=False, cue_percentile_cutoff=0):
         """
         SVM-based pre-trained detector that outputs confidence score as well as per-token class weights.
         
@@ -96,8 +98,8 @@ class SVMDetector:
             since otherwise the interaction may result in unexpected outputs.
         - `cue_percentile_cutoff`: a float in the (0, 1) range, defining the percentile cutoff for cue words.
         """
-        self.model = load_model(path)
-        self.coefficients = get_coefficients(self.model, top_k=top_k, normalize=normalize)
+        self.model = model
+        self.coefficients = get_coefficients(model, top_k=top_k, normalize=normalize)
         self.use_cue_words = use_cue_words
         if use_cue_words > 0:
             if cue_percentile_cutoff < 0 or cue_percentile_cutoff > 1:
@@ -105,6 +107,11 @@ class SVMDetector:
             coefs = np.array(list(self.coefficients.values()))    
             self.pos_cutoff = np.percentile(coefs[coefs>=0], [cue_percentile_cutoff * 100])
             self.neg_cutoff = np.percentile(-coefs[coefs<0], [cue_percentile_cutoff * 100])
+
+    @classmethod
+    async def from_file(cls, path, **kwargs):
+        model = await load_model(path)
+        return cls(model, **kwargs)
 
     def score(self, text, return_token_scores=True, split_sentences=True):
         """
@@ -159,7 +166,7 @@ class SVMDetector:
     
     def _score_tokens_by_sent(self, text):
         sents = []
-        for sent in utils.segment_text(text):
+        for sent in segment_text(text):
             sents.append(self._score_tokens(sent))
         return sents
 
