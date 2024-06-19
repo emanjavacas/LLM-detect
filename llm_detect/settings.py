@@ -5,14 +5,17 @@ from pydantic import Field
 from typing import Type, Tuple, List
 
 
-STATUSES = {
-    'UPLOADING': 'Uploading...',
-    'PROCESSING': 'Processing...',
-    'READY': 'Ready to download!',
-    'UNKNOWNERROR': 'Unknown error',
-    'UNKNOWNFORMAT': 'Unknown input format',
-    'EMPTYFILE': 'Empty input file'
-}
+class STATUS:
+    UPLOADING = 'Uploading...'
+    PROCESSING = 'Processing...'
+    READY = 'Ready to download!'
+    UNKNOWNERROR = 'Unknown error'
+    UNKNOWNFORMAT = 'Unknown input format'
+    EMPTYFILE = 'Empty input file'
+
+    @classmethod
+    def __get_classes__(cls):
+        return {key: getattr(cls, key) for key in vars(cls).keys() if not key.startswith('__')}
 
 
 class Settings(BaseSettings):

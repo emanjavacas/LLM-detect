@@ -20,7 +20,7 @@ from fastapi.templating import Jinja2Templates
 import gradio as gr
 import pandas as pd
 
-from llm_detect.settings import settings, STATUSES
+from llm_detect.settings import settings, STATUS
 from llm_detect.interface_highlighted import demo as highlighted_demo
 from llm_detect.interface import demo as simple_demo
 from llm_detect.models import MODEL
@@ -104,12 +104,12 @@ def validate_file(file_data):
     try:
         data = pd.read_csv(io.StringIO(file_data.decode()))
         if len(data) == 0:
-            raise ValidationException({"status": 'EMPTYFILE'})
+            raise ValidationException({"status": STATUS.EMPTYFILE})
         if "text" not in data:
-            raise ValidationException({"status": "MISSINGKEY"})
+            raise ValidationException({"status": STATUS.MISSINGKEY})
         return data
     except UnicodeDecodeError:
-        raise ValidationException({"status": 'UNKNOWNFORMAT'})
+        raise ValidationException({"status": STATUS.UNKNOWNFORMAT})
 
 
 def process_data(file_data):
@@ -146,14 +146,14 @@ class FileUploadManager:
                 #     self.app_state.executor, process_data, file_data=file_data)
                 processed_data = process_data(file_data)
                 self.processed_files[session_id] = processed_data
-                await self.app_state.websocket_manager.notify(user_id, session_id, STATUSES['READY'])
+                await self.app_state.websocket_manager.notify(user_id, session_id, STATUS.READY)
                 del self.file_chunks[session_id]
             except ValidationException as e:
                 logger.info(f"Session {session_id}: validation exception - {str(e)}")
-                await self.app_state.websocket_manager.notify(user_id, session_id, STATUSES[e.args[0]['status']])
+                await self.app_state.websocket_manager.notify(user_id, session_id, e.args[0]['status'])
             except Exception as e:
                 logger.info(f"Session {session_id}: error - {str(e)}")
-                await self.app_state.websocket_manager.notify(user_id, session_id, STATUSES['UNKNOWNERROR'])
+                await self.app_state.websocket_manager.notify(user_id, session_id, STATUS.UNKNOWNERROR)
             
     def get_processed_file(self, session_id: str):
         processed_file = self.processed_files[session_id]
@@ -194,7 +194,8 @@ templates = Jinja2Templates(directory="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "statuses": STATUSES})
+    return templates.TemplateResponse(
+        "index.html", {"request": request, "statuses": STATUS.__get_classes__()})
 
 
 @app.websocket("/ws/{user_id}")

@@ -94,7 +94,6 @@ $(document).ready(function() {
     function Card() {
 
         function createListItem(file) {
-            // console.log('createListItem', file);
             var statusClass = 'bg-warning text-dark';
             switch (file.status.val) {
                 case UPLOADING:
