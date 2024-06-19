@@ -1,0 +1,12 @@
+__pycache__
+.ipynb_checkpoints
+.vscode
+.python-version
+
+baselines/
+data/
+venv/
+
+app/node_modules
+app/package-lock.json
+
