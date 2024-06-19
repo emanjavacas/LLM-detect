@@ -5,6 +5,7 @@ import logging
 import collections
 import asyncio
 import time
+import random
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import asynccontextmanager, contextmanager
 from typing import Dict
@@ -20,17 +21,14 @@ from fastapi.templating import Jinja2Templates
 import gradio as gr
 import pandas as pd
 
-from llm_detect.settings import settings, STATUS
+from llm_detect.settings import settings, setup_logger, STATUS
 from llm_detect.interface_highlighted import demo as highlighted_demo
 from llm_detect.interface import demo as simple_demo
 from llm_detect.models import MODEL
 
 
+setup_logger()
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.DEBUG,
-    datefmt='%Y-%m-%d %H:%M:%S')
 
 
 @contextmanager
@@ -82,7 +80,7 @@ class WebSocketManager:
             if user_id in self.websockets:
                 ws = self.websockets[user_id]
                 try:
-                    logger.info(f"User '{user_id}', session '{session_id}': status '{status}'")
+                    logger.info(f"User '{user_id}', session '{session_id}': status='{status}'")
                     await ws.send_json({"status": status, "sessionId": session_id})
                 except WebSocketDisconnect:
                     logger.info(f"User '{user_id}': disconnect")
@@ -112,7 +110,7 @@ def validate_file(file_data):
         raise ValidationException({"status": STATUS.UNKNOWNFORMAT})
 
 
-def process_data(file_data):
+async def process_data(file_data):
     # validation
     file_data = validate_file(file_data)
     # prediction
@@ -134,6 +132,7 @@ class FileUploadManager:
         self.app_state = app_state
 
     def add_chunk(self, session_id: str, filename: str, chunk_number: int, chunk_data: bytes):
+        time.sleep(random.random() / 2)
         self.file_chunks[session_id][chunk_number] = chunk_data
         if session_id not in self.filenames:
             self.filenames[session_id] = filename
@@ -144,7 +143,8 @@ class FileUploadManager:
             try:
                 # processed_data = await run_in_process(
                 #     self.app_state.executor, process_data, file_data=file_data)
-                processed_data = process_data(file_data)
+                await asyncio.sleep(random.random() / 2)
+                processed_data = await process_data(file_data)
                 self.processed_files[session_id] = processed_data
                 await self.app_state.websocket_manager.notify(user_id, session_id, STATUS.READY)
                 del self.file_chunks[session_id]

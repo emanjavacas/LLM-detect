@@ -1,4 +1,4 @@
-const { div, li, ul, span, button, h5, form, input, p } = van.tags;
+const { div, li, ul, span, button, h5, form, input, p, small, br } = van.tags;
 
 $(document).ready(function() {
     
@@ -6,12 +6,11 @@ $(document).ready(function() {
 
     const filelist = van.state(new FileList([]));
     function addFileToList(filename, sessionId, status) {
-        // console.log('addFileToList', filename, sessionId, status);
         filelist.val = filelist.val.add(filename, sessionId, status);
     }
 
     function updateFileStatus(sessionId, status) {
-        // console.log('updateFileStatus', sessionId, status);
+        console.log("updateFileStatus", sessionId, status);
         filelist.val = filelist.val.updateStatus(sessionId, status);
     }
 
@@ -118,14 +117,20 @@ $(document).ready(function() {
         }
 
         return div({ class: "card w-50" }, 
-            div({ class: "card-header" }, "AI Detection Service"),
+            div({ class: "card-header" }, "LLM Detect"),
             div({ class: "card-body" },
                 h5({ class: "card-title" }, "File Upload"),
-                p({ class: "card-text" }, "Upload a text file for further analysis."),
+                p({ class: "card-text" }, "Upload a CSV file for further analysis.",
+                    div(small({class: "fw-lighter"}, 
+                        "· Input: a CSV file with a \"text\" column that contains text \
+                        to be analyzed. Other columns will be ignored.",
+                        br(),
+                        "· Output: a CSV file with an extra column \"score\" \
+                        indicating the probability that the text is synthetic."))),
                 form({ class: "input-group", id:"uploadForm", onsubmit: onSubmit },
                     input({ type: "file", class: "form-control", id: "fileInput", multiple: true }),
                     button({ class: "btn btn-outline-secondary", type: "submit" }, "Upload"))),
-            div(ul({ class: "list-group list-group-flush", id: "fileList" },
+            div(ul({ class: "list-group list-group-flush scroll", id: "fileList" },
                 () => div(filelist.val.files.map(createListItem)))))
     }
 
@@ -143,7 +148,10 @@ class FileList {
     updateStatus(sessionId, status) {
         const file = this.files.find(f => f.sessionId === sessionId);
         if (file) {
-            file.status = van.state(status);
+            // never downgrade from READY
+            if (file.status.val !== READY) {
+                file.status = van.state(status);
+            }
         }
         return new FileList(this.files);
     }

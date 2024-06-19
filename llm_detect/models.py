@@ -5,10 +5,6 @@ from .settings import settings
 from .svm_baseline import SVMDetector
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.DEBUG,
-    datefmt='%Y-%m-%d %H:%M:%S')
 
 
 def load_model():

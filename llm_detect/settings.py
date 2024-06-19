@@ -1,8 +1,18 @@
 
+from typing import Type, Tuple, List
+import logging.config
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_settings import PydanticBaseSettingsSource, TomlConfigSettingsSource
 from pydantic import Field
-from typing import Type, Tuple, List
+
+import toml
+
+
+def setup_logger(path='settings_logger.toml'):
+    with open(path) as f:
+        config = toml.load(f)
+        logging.config.dictConfig(config)
 
 
 class STATUS:

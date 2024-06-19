@@ -5,11 +5,11 @@ from .models import MODEL
 
 
 def on_click(text):
-    scores = MODEL.model.score(text, return_token_scores=False)
+    scores = MODEL.model.score(text)
     return round(scores, 4)
 
 
-with gr.Blocks(title="AI Detection Service") as demo:
+with gr.Blocks(title="LLM Detect (simple)") as demo:
     gr.Markdown(
         """
         # AI Detection Service

@@ -1,9 +1,10 @@
 
 import re
+import logging
+
 import pandas as pd
 import numpy as np
 import skops.io
-
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import SGDClassifier
@@ -12,6 +13,9 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 
 from .settings import settings
 from .utils import segment_text
+
+
+logger = logging.getLogger(__name__)
 
 
 def load_data(data_path='data/data.csv', test_size=0.20, random_state=42):
@@ -25,7 +29,7 @@ def load_data(data_path='data/data.csv', test_size=0.20, random_state=42):
         return X_train, X_test, y_train, y_test
     return X, y
 
-    
+
 def train_model(X_train, X_test, y_train, y_test, output_path=settings.SVM_BASELINE_PATH):
     pipe = make_pipeline(TfidfVectorizer(), SGDClassifier())
 
@@ -35,17 +39,17 @@ def train_model(X_train, X_test, y_train, y_test, output_path=settings.SVM_BASEL
         'sgdclassifier__loss': ['hinge', 'log_loss', 'perceptron']}]
     gs = GridSearchCV(pipe, grid, cv=5, scoring='f1_macro', n_jobs=-1, refit=True, verbose=1)
     gs.fit(X_train, y_train)
-    print("- Best training CV f1_macro: {:.3f}".format(gs.best_score_))
-    print("- Best params: ", gs.best_params_)
+    logger.info("- Best training CV f1_macro: {:.3f}".format(gs.best_score_))
+    logger.info("- Best params: ", gs.best_params_)
 
-    print("- Calibrating model on test set")
+    logger.info("- Calibrating model on test set")
     # SGDClassifier doens't output probabilities, so calibrate it on the test split
     clf = gs.best_estimator_
     # refit with best parameters
     clf.fit(X_train, y_train)
     clf = CalibratedClassifierCV(clf, cv="prefit").fit(X_test, y_test)
 
-    print("- Serializing model")
+    logger.info("- Serializing model")
     skops.io.dump(clf, output_path)
 
 

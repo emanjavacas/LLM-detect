@@ -1,8 +1,6 @@
 
-import numpy as np
 import gradio as gr
 
-from .settings import settings
 from .models import MODEL
 
 
@@ -12,7 +10,7 @@ def on_click(text):
     return round(score, 4), sent_scores
 
 
-with gr.Blocks(title="AI Detection Service") as demo:
+with gr.Blocks(title="LLM Detect (highlighted)") as demo:
     gr.Markdown(
         """
         # AI Detection Service
