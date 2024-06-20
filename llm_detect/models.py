@@ -9,18 +9,18 @@ from .inference import SVMDetector, Binoculars
 logger = logging.getLogger(__name__)
 
 
-def load_model(language_settings):
-    if language_settings.MODEL_TYPE == 'SVMDetector':
-        logger.info(f"Loading model: {language_settings.MODEL_PATH}")
+def load_model(model_type, model_settings):
+    if model_type == 'SVMDetector':
+        logger.info(f"Loading model: {model_settings.MODEL_PATH}")
         model = SVMDetector.from_file(
-            language_settings.MODEL_PATH,
-            top_k=settings.SVM_BASELINE__MAX_TOP_K,
-            cue_percentile_cutoff=settings.SVM_BASELINE__CUE_PERCENTILE_CUTOFF)
-        logger.info(f"Loaded model: {language_settings.MODEL_PATH}")
-    elif language_settings.MODEL_TYPE == 'BINOCULARS':
-        pass
+            model_settings.MODEL_PATH,
+            top_k=settings.SVM_DETECTOR__MAX_TOP_K,
+            cue_percentile_cutoff=settings.SVM_DETECTOR__CUE_PERCENTILE_CUTOFF)
+        logger.info(f"Loaded model: {model_settings.MODEL_PATH}")
+    elif model_type == 'BINOCULARS':
+        model = Binoculars()
     else:
-        raise ValueError(f"Unknown MODEL_TYPE: {language_settings.MODEL_TYPE}")
+        raise ValueError(f"Unknown MODEL_TYPE: {model_type}")
 
     return model
 
@@ -33,7 +33,8 @@ class ModelWrapper:
         for lang, lang_settings in settings.LANGUAGES.items():
             lang = lang.lower()
             if lang not in self.model:
-                self.model[lang] = load_model(lang_settings)
+                self.model[lang] = load_model(
+                    lang_settings.MODEL_TYPE, lang_settings.MODEL_SETTINGS)
 
     def score(self, text):
         return self.model[TEXT_MODEL.detect_language(text)].score(text)

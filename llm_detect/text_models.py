@@ -29,15 +29,16 @@ class TextModelWrapper:
         self.segmenters = {}
 
     def load(self):
-        logger.info(f"Loading text models")
-        langdetect_langs = []
-        for language in settings.LANGUAGES:
-            language = language.lower()
-            langdetect_langs.append(CODES_LINGUA[language])
-            self.segmenters[language] = pysbd.Segmenter(language=language, clean=False)        
-        if settings.NEEDS_LANGUAGE_DETECTION:
-            self.langdetect = LanguageDetectorBuilder.from_languages(*langdetect_langs).build()
-        logger.info(f"Loaded text models")
+        if len(self.segmenters) == 0:
+            logger.info(f"Loading text models")
+            langdetect_langs = []
+            for language in settings.LANGUAGES:
+                language = language.lower()
+                langdetect_langs.append(CODES_LINGUA[language])
+                self.segmenters[language] = pysbd.Segmenter(language=language, clean=False)        
+            if settings.NEEDS_LANGUAGE_DETECTION:
+                self.langdetect = LanguageDetectorBuilder.from_languages(*langdetect_langs).build()
+            logger.info(f"Loaded text models")
 
     def detect_language(self, text):
         if settings.NEEDS_LANGUAGE_DETECTION:

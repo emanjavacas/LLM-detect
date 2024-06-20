@@ -1,5 +1,5 @@
 
-from typing import Type, Tuple, Dict
+from typing import Type, Tuple, Dict, Union
 import logging.config
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,7 +15,7 @@ def setup_logger(path='settings_logger.toml'):
         logging.config.dictConfig(config)
 
 
-class STATUS:
+class Status:
     UPLOADING = 'Uploading...'
     PROCESSING = 'Processing...'
     READY = 'Ready to download!'
@@ -28,17 +28,26 @@ class STATUS:
         return {key: getattr(cls, key) for key in vars(cls).keys() if not key.startswith('__')}
     
 
+class SVMDetectorSettings(BaseModel):
+    MODEL_PATH: str = Field(description="Path to the SVM model")
+
+
+class BinocularsSettings(BaseModel):
+    OBSERVER_PATH: str
+    PERFORMER_PATH: str
+
+
 class LanguageSettings(BaseModel):
     MODEL_TYPE: str = Field(description="Detection model type")
-    MODEL_PATH: str = Field(description="Path to the model")
+    MODEL_SETTINGS: Union[SVMDetectorSettings, BinocularsSettings]
 
 
 class Settings(BaseSettings):
     # Interface
     PORT: int = Field(default=5050, description="Field to run the app.")
     # SVM arguments
-    SVM_BASELINE__MAX_TOP_K: int = Field(description="Only use max top k coefficients")
-    SVM_BASELINE__CUE_PERCENTILE_CUTOFF : float = Field(
+    SVM_DETECTOR__MAX_TOP_K: int = Field(description="Only use max top k coefficients")
+    SVM_DETECTOR__CUE_PERCENTILE_CUTOFF : float = Field(
         description="A float in the (0, 1) range defining the percentile cutoff for cue words")
     # BINOCULARS
     ## ... TODO

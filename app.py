@@ -22,7 +22,7 @@ from fastapi.templating import Jinja2Templates
 import gradio as gr
 import pandas as pd
 
-from llm_detect.settings import settings, setup_logger, STATUS
+from llm_detect.settings import settings, setup_logger, Status
 from llm_detect.interface_highlighted import demo as highlighted_demo
 from llm_detect.interface import demo as simple_demo
 from llm_detect.models import MODEL
@@ -104,12 +104,12 @@ def validate_file(file_data):
     try:
         data = pd.read_csv(io.StringIO(file_data.decode()), sep=None)
         if len(data) == 0:
-            raise ValidationException({"status": STATUS.EMPTYFILE})
+            raise ValidationException({"status": Status.EMPTYFILE})
         if "text" not in data:
-            raise ValidationException({"status": STATUS.MISSINGKEY})
+            raise ValidationException({"status": Status.MISSINGKEY})
         return data
     except UnicodeDecodeError:
-        raise ValidationException({"status": STATUS.UNKNOWNFORMAT})
+        raise ValidationException({"status": Status.UNKNOWNFORMAT})
 
 
 async def process_data(file_data):
@@ -148,12 +148,12 @@ class FileUploadManager:
             file_data = b''.join(self.file_chunks[session_id][i] for i in range(total_chunks))
             try:
                 logger.info(f"Processing file: {self.filenames[session_id]}")
-                # processed_data = await run_in_process(
-                #     self.app_state.executor, process_data, file_data=file_data)
                 await asyncio.sleep(random.random() / 2)
+                # processed_data = await run_in_process(
+                #     self.app_state.executor, process_data, file_data)
                 processed_data = await process_data(file_data)
                 self.processed_files[session_id] = processed_data
-                await self.app_state.websocket_manager.notify(user_id, session_id, STATUS.READY)
+                await self.app_state.websocket_manager.notify(user_id, session_id, Status.READY)
                 del self.file_chunks[session_id]
             except ValidationException as e:
                 logger.info(f"Session {session_id}: validation exception - {str(e)}")
@@ -161,8 +161,8 @@ class FileUploadManager:
             except Exception as e:
                 logger.info(f"Session {session_id}: error - {str(e)}")
                 logger.info(traceback.format_exc())
-                await self.app_state.websocket_manager.notify(user_id, session_id, STATUS.UNKNOWNERROR)
-            
+                await self.app_state.websocket_manager.notify(user_id, session_id, Status.UNKNOWNERROR)
+
     def get_processed_file(self, session_id: str):
         processed_file = self.processed_files[session_id]
         filename = self.filenames[session_id]
@@ -203,7 +203,7 @@ templates = Jinja2Templates(directory="static")
 @app.get("/", response_class=HTMLResponse)
 async def read_index(request: Request):
     return templates.TemplateResponse(
-        "index.html", {"request": request, "statuses": STATUS.__get_classes__()})
+        "index.html", {"request": request, "statuses": Status.__get_classes__()})
 
 
 @app.websocket("/ws/{user_id}")
@@ -247,7 +247,7 @@ async def download_file(session_id: str):
                                  headers={"Content-Disposition": f"attachment; filename={payload['filename']}"})
     else:
         raise HTTPException(status_code=404, detail=f"File not found")
-    
+
 
 MODEL.load()
 TEXT_MODEL.load()
@@ -263,6 +263,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
+
         
     import uvicorn
     uvicorn.run("app:app",

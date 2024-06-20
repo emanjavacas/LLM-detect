@@ -1,3 +1,3 @@
 
-from .svm_baseline import SVMDetector
+from .svm_detector import SVMDetector
 from .binoculars import Binoculars
