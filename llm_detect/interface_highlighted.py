@@ -2,11 +2,12 @@
 import gradio as gr
 
 from .models import MODEL
+from .text_models import TEXT_MODEL
 
 
 def on_click(text):
-    score = MODEL.model.score(text)
-    sent_scores = MODEL.model.score_sentences(text)    
+    score = MODEL.score(text)
+    sent_scores = MODEL.score_sentences(text)
     return round(score, 4), sent_scores
 
 

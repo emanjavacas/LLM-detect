@@ -1,8 +1,13 @@
 
 PORT = 5050
-SVM_BASELINE_PATH = 'models/svm_baseline.skops'
-SVM_BASELINE_MAX_TOP_K = 0
-MODEL_TYPE = 'SVMDetector'
+SVM_BASELINE__MAX_TOP_K = 0
+SVM_BASELINE__CUE_PERCENTILE_CUTOFF = 0.75
 BATCH_SIZE = 5
-LANGUAGES = ['en', 'nl']
-CUE_PERCENTILE_CUTOFF = 0.75
+
+[LANGUAGES.EN]
+MODEL_TYPE = 'SVMDetector'
+MODEL_PATH = 'models/svm_baseline.skops'
+
+[LANGUAGES.NL]
+MODEL_TYPE = 'SVMDetector'
+MODEL_PATH = 'models/svm_baseline_nl.skops'

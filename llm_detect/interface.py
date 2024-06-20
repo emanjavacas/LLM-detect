@@ -5,7 +5,7 @@ from .models import MODEL
 
 
 def on_click(text):
-    scores = MODEL.model.score(text)
+    scores = MODEL.score(text)
     return round(scores, 4)
 
 
