@@ -1,0 +1,15 @@
+
+*.md
+*.log
+*.lock
+
+__pycache__
+llm_detect/__pycache__
+
+venv
+data
+baselines
+
+.python-version
+.vscode
+.ipynb_checkpoints

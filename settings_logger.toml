@@ -17,7 +17,7 @@ filename = "app.log"
 [loggers.app]
 level = "INFO"
 handlers = [ "console", "file" ]
-propagate = "no"
+propagate = false
 
 [root]
 level = "INFO"

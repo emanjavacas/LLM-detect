@@ -1,6 +1,6 @@
 
 PORT = 5050
-SVM_BASELINE_PATH = 'svm_baseline.skops'
+SVM_BASELINE_PATH = 'models/svm_baseline.skops'
 SVM_BASELINE_MAX_TOP_K = 0
 MODEL_TYPE = 'SVMDetector'
 BATCH_SIZE = 5

@@ -13,13 +13,14 @@ lingua-language-detector = "^2.0.2"
 numpy = "^1.26.4"
 pandas = "^2.2.2"
 pydantic = "^2.7.4"
-pydantic-settings = "^2.3.3"
+pydantic-settings = {extras = ["toml"], version = "^2.3.3"}
 pysbd = "^0.3.4"
 scikit-learn = "^1.5.0"
 skops = "^0.9.0"
 toml = "^0.10.2"
 tqdm = "^4.66.4"
 uvicorn = "^0.30.1"
+tomli = "^2.0.1"
 
 
 [build-system]
