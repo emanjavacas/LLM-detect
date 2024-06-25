@@ -9,6 +9,10 @@ label = "very unlikely"
 cutoff = 0
 
 [[PROBABILITY_RANGES]]
+label = "unlikely"
+cutoff = 0.5
+
+[[PROBABILITY_RANGES]]
 label = "possibly"
 cutoff = 0.75
 
