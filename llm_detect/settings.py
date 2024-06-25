@@ -1,5 +1,5 @@
 
-from typing import Type, Tuple, Dict, Union
+from typing import Type, Tuple, Dict, Union, List
 import logging.config
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -42,12 +42,20 @@ class LanguageSettings(BaseModel):
     MODEL_SETTINGS: Union[SVMDetectorSettings, BinocularsSettings]
 
 
+class ProbabilityRange(BaseModel):
+    label: str = Field(description="Label assigned to probability scores higher than the cutoff")
+    cutoff: float = Field(description="Cutoff in the (0, 1) range")
+
+
 class Settings(BaseSettings):
     # Interface
     PORT: int = Field(default=5050, description="Field to run the app.")
+    PROBABILITY_RANGES: List[ProbabilityRange] = Field(
+        default=[],
+        description="Define cutoff points in the probability domain and assign them to labels")
     # SVM arguments
     SVM_DETECTOR__MAX_TOP_K: int = Field(description="Only use max top k coefficients")
-    SVM_DETECTOR__CUE_PERCENTILE_CUTOFF : float = Field(
+    SVM_DETECTOR__CUE_PERCENTILE_CUTOFF: float = Field(
         description="A float in the (0, 1) range defining the percentile cutoff for cue words")
     # BINOCULARS
     ## ... TODO

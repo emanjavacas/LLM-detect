@@ -4,6 +4,22 @@ SVM_DETECTOR__MAX_TOP_K = 0
 SVM_DETECTOR__CUE_PERCENTILE_CUTOFF = 0.75
 BATCH_SIZE = 5
 
+[[PROBABILITY_RANGES]]
+label = "very unlikely"
+cutoff = 0
+
+[[PROBABILITY_RANGES]]
+label = "possibly"
+cutoff = 0.75
+
+[[PROBABILITY_RANGES]]
+label = "probably"
+cutoff = 0.85
+
+[[PROBABILITY_RANGES]]
+label = "highly likely"
+cutoff = 0.95
+
 [LANGUAGES.EN]
 MODEL_TYPE = 'SVMDetector'
 

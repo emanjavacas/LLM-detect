@@ -26,6 +26,7 @@ torch = "2.2.2"
 accelerate = "^0.31.0"
 sentencepiece = "^0.2.0"
 protobuf = "^5.27.1"
+gradio-rich-textbox = "^0.4.2"
 
 
 [build-system]

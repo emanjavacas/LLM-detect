@@ -1,8 +1,10 @@
 
 import gradio as gr
+from gradio_rich_textbox import RichTextbox
 
 from .models import MODEL
 from .settings import settings
+from .interface_highlighted import score_label
 
 
 DETECT_LANGUAGE = "Detect Language"
@@ -15,7 +17,7 @@ def on_click(text, detect_language, detected_language):
     else:
         score = MODEL.score(text, language=detect_language.lower())['score']
         detected_language = None
-    return round(score, 4), detected_language
+    return round(score, 4), score_label(score), detected_language
 
 
 with gr.Blocks(title="LLM Detect (simple)") as demo:
@@ -43,6 +45,8 @@ with gr.Blocks(title="LLM Detect (simple)") as demo:
                 label="Input Language",
                 value=DETECT_LANGUAGE,
                 interactive=True)
+
+            output_label = RichTextbox(label="Result", interactive=False, visible=len(settings.PROBABILITY_RANGES) > 0)
             output_score = gr.Textbox(label="Confidence")
 
             @gr.render(inputs=detected_language)
@@ -51,8 +55,8 @@ with gr.Blocks(title="LLM Detect (simple)") as demo:
                            interactive=False, visible=detected_language != None)
 
         score_btn.click(fn=on_click,
-                        inputs=[input_text, language_dropdown, detected_language], 
-                        outputs=[output_score, detected_language])
+                        inputs=[input_text, language_dropdown, detected_language],
+                        outputs=[output_score, output_label, detected_language])
 
 
 if __name__ == '__main__':
