@@ -20,13 +20,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 
 import gradio as gr
-import pandas as pd
 
 from llm_detect.settings import settings, setup_logger, Status
 from llm_detect.interface_highlighted import demo as highlighted_demo
 from llm_detect.interface import demo as simple_demo
 from llm_detect.models import MODEL
-from llm_detect.text_models import TEXT_MODEL, UnknownLanguageException
+from llm_detect.text_models import TEXT_MODEL
+from llm_detect.processing import process_data, ValidationException
 
 
 setup_logger()
@@ -89,45 +89,6 @@ class WebSocketManager:
                     await self.deregister(user_id)
             else:
                 logger.info(f"Notification to unknown user: {user_id}")
-
-
-async def run_in_process(executor, fn, *args, **kwargs):
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(executor, fn, *args, **kwargs)
-
-
-class ValidationException(Exception):
-    pass
-
-
-def validate_file(file_data):
-    try:
-        data = pd.read_csv(io.StringIO(file_data.decode()), sep=None)
-        if len(data) == 0:
-            raise ValidationException({"status": Status.EMPTYFILE})
-        if "text" not in data:
-            raise ValidationException({"status": Status.MISSINGKEY})
-        return data
-    except UnicodeDecodeError:
-        raise ValidationException({"status": Status.UNKNOWNFORMAT})
-
-
-async def process_data(file_data):
-    # validation
-    file_data = validate_file(file_data)
-    # prediction
-    output = []
-    for row_id, row in file_data.iterrows():
-        row = row.to_dict()
-        try:
-            row['score'] = MODEL.score(row['text'])
-        except UnknownLanguageException as e:
-            logger.info(f"Detected unknown language: {e.args[0]['language']} at line {row_id}")
-            row['score'] = None
-        output.append(row)
-    # post-processing
-    output = pd.DataFrame.from_dict(output).to_csv(index=None)
-    return output
 
 
 class FileUploadManager:

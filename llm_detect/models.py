@@ -36,11 +36,15 @@ class ModelWrapper:
                 self.model[lang] = load_model(
                     lang_settings.MODEL_TYPE, lang_settings.MODEL_SETTINGS)
 
-    def score(self, text):
-        return self.model[TEXT_MODEL.detect_language(text)].score(text)
-    
-    def score_sentences(self, text):
-        return self.model[TEXT_MODEL.detect_language(text)].score_sentences(text)
+    def score(self, text, language=None):
+        if language is None:
+            language = TEXT_MODEL.detect_language(text)
+        return {'language': language, 'score': self.model[language].score(text)}
+
+    def score_sentences(self, text, language=None):
+        if language is None:
+            language = TEXT_MODEL.detect_language(text)
+        return {'language': language, 'score': self.model[language].score_sentences(text)}
 
 
 MODEL = ModelWrapper()

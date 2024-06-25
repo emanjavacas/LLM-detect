@@ -21,6 +21,9 @@ CODES_LINGUA = {key: code for code, key in LINGUA_CODES.items()}
 class UnknownLanguageException(Exception):
     pass
 
+class UnsupportedLanguageException(Exception):
+    pass
+
 
 class TextModelWrapper:
     def __init__(self) -> None:
@@ -43,8 +46,10 @@ class TextModelWrapper:
     def detect_language(self, text):
         if settings.NEEDS_LANGUAGE_DETECTION:
             lang_code = self.langdetect.detect_language_of(text)
-            if lang_code is None or LINGUA_CODES[lang_code].upper() not in settings.LANGUAGES:
-                raise UnknownLanguageException({"language": lang_code})
+            if lang_code is None:
+                raise UnknownLanguageException()
+            elif LINGUA_CODES[lang_code].upper() not in settings.LANGUAGES:
+                raise UnsupportedLanguageException({"language": lang_code})
             return LINGUA_CODES[lang_code]
         else:
             return next(iter(settings.LANGUAGES.keys()))
