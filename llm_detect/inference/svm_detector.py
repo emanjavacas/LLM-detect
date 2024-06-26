@@ -1,6 +1,7 @@
 
 import re
 import logging
+from typing import List
 
 import pandas as pd
 import numpy as np
@@ -127,7 +128,7 @@ class SVMDetector:
         """
         return self._score_tokens(text, use_cue_words=False)
 
-    def score_sentences(self, sentences):
+    def score_sentences(self, sentences: List[str]):
         """
         Return sentence-level scores using cue-words. Token-level scores are converted into
         minus one if a token is deemed to be a cue word of the negative class and +1 if the

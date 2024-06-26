@@ -52,7 +52,7 @@ class TextModelWrapper:
                 raise UnsupportedLanguageException({"language": lang_code})
             return LINGUA_CODES[lang_code]
         else:
-            return next(iter(settings.LANGUAGES.keys()))
+            return next(iter(settings.LANGUAGES.keys())).lower()
 
     def segment_text(self, text):
         lang = self.detect_language(text)
