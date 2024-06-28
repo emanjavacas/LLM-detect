@@ -42,9 +42,9 @@ class ModelWrapper:
         return {'language': language, 'score': self.model[language].score(text)}
 
     def score_sentences(self, text, language=None):
-        sentences = TEXT_MODEL.segment_text(text)
         if language is None:
-            language = TEXT_MODEL.detect_language(sentences)
+            language = TEXT_MODEL.detect_language(text)
+        sentences = TEXT_MODEL.segment_text(text)
         return {'language': language, 
                 'score': self.model[language].score_sentences(sentences)}
 
