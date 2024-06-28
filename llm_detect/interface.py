@@ -25,7 +25,7 @@ with gr.Blocks(title="DETECTUA (simple)") as demo:
         """
         # TextUA's AI Detection Service
 
-        This web provides an inference service to detect texts that are suspect to have been 
+        This website provides an inference service to detect texts that are suspect to have been 
         generated using a Large Language Model like OpenAI's ChatGPT.
         
         Copy the text to the input field below and click on the "Score" button on the right 

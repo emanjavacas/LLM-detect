@@ -9,9 +9,9 @@ $(document).ready(function() {
         filelist.val = filelist.val.add(filename, sessionId, status);
     }
 
-    function updateFileStatus(sessionId, status) {
+    function updateFileStatus(sessionId, status, uploadChunk) {
         console.log("updateFileStatus", sessionId, status);
-        filelist.val = filelist.val.updateStatus(sessionId, status);
+        filelist.val = filelist.val.updateStatus(sessionId, status, uploadChunk);
     }
 
     // setUp WebSocket Connection
@@ -60,6 +60,7 @@ $(document).ready(function() {
                         } else {
                             currentChunk++;
                             _readAndUploadNextChunk();
+                            updateFileStatus(sessionId, UPLOADING, Math.round((currentChunk + 1) * 100 / totalChunks));
                         }
                     },
                     error: function (xhr, status, error) {
@@ -112,7 +113,8 @@ $(document).ready(function() {
                         class: "btn btn-sm btn-primary float-end",
                         onclick: () => downloadFile(file.sessionId) }, "Download") :
                     button({ id: `btn-${file.sessionId}`, class: "btn btn-sm btn-primary float-end disabled" }, "Download"),
-                div(span({ id: `status-${file.sessionId}`, class: `badge ${statusClass}` }, file.status.val)))
+                div(span({ id: `status-${file.sessionId}`, class: `badge ${statusClass}` }, file.status.val),
+                file.status.val == UPLOADING ? span({ style: "margin: 1em 0 0 0", class: "badge text-bg-secondary" }, `${file.uploadChunk.val}/100`): span()))
             return listItem
         }
 
@@ -142,15 +144,16 @@ $(document).ready(function() {
 class FileList {
     constructor (files) { this.files = files }
     add (filename, sessionId, status) {
-        this.files.push({ filename: filename, sessionId: sessionId, status: van.state(status)});
+        this.files.push({ filename: filename, sessionId: sessionId, status: van.state(status), uploadChunk: van.state(0)});
         return new FileList(this.files);
     }
-    updateStatus(sessionId, status) {
+    updateStatus(sessionId, status, uploadChunk) {
         const file = this.files.find(f => f.sessionId === sessionId);
         if (file) {
             // never downgrade from READY
             if (file.status.val !== READY) {
                 file.status = van.state(status);
+                file.uploadChunk = van.state(uploadChunk);
             }
         }
         return new FileList(this.files);

@@ -41,9 +41,9 @@ async def process_data(file_data):
     for row_id, row in file_data.iterrows():
         row = row.to_dict()
         try:
-            output = MODEL.score(row['text'])
-            row['score'] = output['score']
-            row['language'] = output['language']
+            payload = MODEL.score(row['text'])
+            row['score'] = payload['score']
+            row['language'] = payload['language']
         except UnsupportedLanguageException as e:
             logger.info(f"Detected unsupported language: {e.args[0]['language']} at line {row_id}")
             row['score'] = None
@@ -56,4 +56,3 @@ async def process_data(file_data):
     # post-processing
     output = pd.DataFrame.from_dict(output).to_csv(index=None)
     return output
-
