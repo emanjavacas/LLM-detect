@@ -117,7 +117,7 @@ $(document).ready(function() {
         }
 
         return div({ class: "card w-50" }, 
-            div({ class: "card-header" }, "TextUA AI Detection System"),
+            div({ class: "card-header" }, "TextUA's AI Detection System"),
             div({ class: "card-body" },
                 h5({ class: "card-title" }, "File Upload"),
                 p({ class: "card-text" }, "Upload a CSV file for further analysis.",

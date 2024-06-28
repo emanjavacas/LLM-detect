@@ -39,10 +39,10 @@ def on_click(text, detect_language, detected_language):
     return format_score(score), score_label(score), sent_scores, detected_language
 
 
-with gr.Blocks(title="LLM Detect (highlighted)") as demo:
+with gr.Blocks(title="DETECTUA") as demo:
     gr.Markdown(
         """
-        # TextUA AI Detection Service
+        # DETECTUA: TextUA's AI Detection Service
 
         This web provides an inference service to detect texts that are suspect to have been 
         generated using a Large Language Model like OpenAI's ChatGPT.
