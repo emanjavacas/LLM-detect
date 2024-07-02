@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     BATCH_SIZE: int = Field(description="Number of documents in batch")
     LANGUAGES: Dict[str, LanguageSettings] = Field(description="Languages to load detectors")
     NEEDS_LANGUAGE_DETECTION: bool = Field(default=True)
+    DEFAULT_LANGUAGE: Union[str, None] = Field(default=None)
 
     model_config = SettingsConfigDict(toml_file="settings.toml")
 
@@ -81,3 +82,4 @@ class Settings(BaseSettings):
 settings = Settings()
 if len(settings.LANGUAGES) == 1:
     settings.NEEDS_LANGUAGE_DETECTION = False
+    settings.DEFAULT_LANGUAGE = next(iter(settings.LANGUAGES.keys())).lower()

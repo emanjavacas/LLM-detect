@@ -2,20 +2,12 @@
 import logging
 
 import pysbd
-from lingua import Language, LanguageDetectorBuilder
+from lingua import Language, LanguageDetectorBuilder, IsoCode639_1
 
 from .settings import settings
 
 
 logger = logging.getLogger(__name__)
-
-
-LINGUA_CODES = {Language.ENGLISH: 'en',
-                Language.SPANISH: 'es',
-                Language.GERMAN: 'de',
-                Language.FRENCH: 'fr',
-                Language.DUTCH: 'nl'}
-CODES_LINGUA = {key: code for code, key in LINGUA_CODES.items()}
 
 
 class UnknownLanguageException(Exception):
@@ -33,30 +25,35 @@ class TextModelWrapper:
 
     def load(self):
         if len(self.segmenters) == 0:
-            logger.info(f"Loading text models")
+            logger.info(f"Loading text models...")
             langdetect_langs = []
             for language in settings.LANGUAGES:
                 language = language.lower()
-                langdetect_langs.append(CODES_LINGUA[language])
+                langdetect_langs.append(get_language_from_code(language))
                 self.segmenters[language] = pysbd.Segmenter(language=language, clean=False)        
             if settings.NEEDS_LANGUAGE_DETECTION:
                 self.langdetect = LanguageDetectorBuilder.from_languages(*langdetect_langs).build()
-            logger.info(f"Loaded text models")
+            logger.info(f"...Loaded text models")
 
     def detect_language(self, text):
         if settings.NEEDS_LANGUAGE_DETECTION:
-            lang_code = self.langdetect.detect_language_of(text)
-            if lang_code is None:
+            lang = self.langdetect.detect_language_of(text)
+            if lang is None:
                 raise UnknownLanguageException()
-            elif LINGUA_CODES[lang_code].upper() not in settings.LANGUAGES:
-                raise UnsupportedLanguageException({"language": lang_code})
-            return LINGUA_CODES[lang_code]
+            lang = lang.iso_code_639_1.name.lower()
+            if lang.upper() not in settings.LANGUAGES:
+                raise UnsupportedLanguageException({"language": lang})
+            return lang
         else:
-            return next(iter(settings.LANGUAGES.keys())).lower()
+            return settings.DEFAULT_LANGUAGE.lower()
 
     def segment_text(self, text):
         lang = self.detect_language(text)
         return self.segmenters[lang].segment(text)
+
+
+def get_language_from_code(code):
+    return Language.from_iso_code_639_1(getattr(IsoCode639_1, code.upper()))
 
 
 TEXT_MODEL = TextModelWrapper()
